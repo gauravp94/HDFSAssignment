@@ -38,10 +38,16 @@ readblock_1_svc(char **argp, struct svc_req *rqstp)
 	str.assign((std::istreambuf_iterator<char>(t)),
 	            std::istreambuf_iterator<char>());
 
-	result = str.c_str();
+	ReadBlockResponse op = new ReadBlockResponse();
+	op.status = 1;
+	op.data = str; //repeated bytes is string ?
 	/*
 	 * insert server code here
 	 */
+	if (!op.SerializeToString(result)) {
+      cerr << "Failed to give ReadBlockResponse."<< endl;
+      return -1;
+    }
 	return &result;
 }
 
@@ -64,11 +70,15 @@ writeblock_1_svc(char **argp, struct svc_req *rqstp)
 	rep<<filename+"\n";
 	rep.close();
 
-	//WriteBlockResponse w = new WriteBlockResponse();
-	string output= "1";
-	result = output.c_str();
+	WriteBlockResponse w = new WriteBlockResponse();
+	w.status = 1;
+
 	/*
 	 * insert server code here
 	 */
+	if (!w.SerializeToString(result)) {
+      cerr << "Failed to give WriteBlockResponse."<< endl;
+      return -1;
+    }
 	return &result;
 }
