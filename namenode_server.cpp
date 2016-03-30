@@ -58,11 +58,28 @@ char **
 list_1_svc(char **argp, struct svc_req *rqstp)
 {
 	static char * result;
-
+	ListFilesRequest l;
+	ListFilesResponse lr = new ListFilesResponse();
+	string dir_name = l.dirName;
+	map<string, vector<int> >::iterator it;
+	vector<string> ans;
+	//set<int> setOfBlocks;
+	for(it = filename_block_map.begin();it!=filename_block_map.end();it++)
+	{
+		string fname = it->first;
+		ans.append(fname);
+		// vector<int> blocks = it->second;
+		// copy( blocks.begin(), blocks.end(), std::inserter( setOfBlocks, setOfBlocks.end() ) );
+	}
+	lr.status=1;
+	lr.fileNames = ans;
 	/*
 	 * insert server code here
 	 */
-
+	if (!lr.SerializeToString(result)) {
+      cerr << "Failed to give BlockReportResponse."<< endl;
+      return -1;
+    }
 	return &result;
 }
 
@@ -70,11 +87,37 @@ char **
 sendblockreport_1_svc(char **argp, struct svc_req *rqstp)
 {
 	static char * result;
-
+	BlockReportRequest b;
+	BlockReportResponse op = new BlockReportResponse();
+	int dataNodeId = b.id;
+	string ip = b.blockLocations.ip;
+	int port = b.blockLocations.port;
+	vector<int> blockNos = b.blockNumbers;
 	/*
 	 * insert server code here
 	 */
-
+	int blockNos_size = blockNos.size();
+	for(int i =0;i<blockNos_size;i++)
+	{
+		//if vector doesn't exist
+		if(block_datanode_map.find(blockNos[i]) == block_datanode_map.end())
+		{
+			vector<int> tmp(1,dataNodeId);
+			block_datanode_map[blockNos[i]] = tmp;
+		}
+		else
+		{
+			//if vector exists but entry not 
+			vector<int> tmp = block_datanode_map[blockNos[i]];
+			tmp.append(dataNodeId);
+			block_datanode_map[blockNos[i]] = tmp;
+		}
+	}
+	op.status = 1;
+	if (!op.SerializeToString(result)) {
+      cerr << "Failed to give BlockReportResponse."<< endl;
+      return -1;
+    }
 	return &result;
 }
 
@@ -82,10 +125,19 @@ char **
 sendheartbeat_1_svc(char **argp, struct svc_req *rqstp)
 {
 	static char * result;
+	HeartBeatRequest r;
+	int blockno = r.id;
+	cout<<"got heartbeat from datanode :"<<blockno<<endl;
+
+	HeartBeatResponse hr = new HeartBeatResponse();
+	hr.status = 1;
 
 	/*
 	 * insert server code here
 	 */
-
+	if (!hr.SerializeToString(result)) {
+      cerr << "Failed to give HeartBeatResponse."<< endl;
+      return -1;
+    }
 	return &result;
 }
