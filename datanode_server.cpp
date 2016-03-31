@@ -19,9 +19,9 @@ readblock_1_svc(char **argp, struct svc_req *rqstp)
 
 	ReadBlockRequest r;
 	int blockID=-1;
-	if(r.blockNumber!=NULL)
+	if(r.has_blockNumber())
 	{
-		blockID=r.blockNumber;
+		blockID=r.blockNumber();
 	}
 	else
 	{
@@ -38,16 +38,20 @@ readblock_1_svc(char **argp, struct svc_req *rqstp)
 	str.assign((std::istreambuf_iterator<char>(t)),
 	            std::istreambuf_iterator<char>());
 
-	ReadBlockResponse op = new ReadBlockResponse();
-	op.status = 1;
-	op.data = str; //repeated bytes is string ?
+	ReadBlockResponse op;
+	op.set_status(1);
+	char * tmp = str.c_str();
+	
+	op.add_data(tmp);//repeated bytes is string ?
 	/*
 	 * insert server code here
 	 */
-	if (!op.SerializeToString(result)) {
+	string t;
+	if (!op.SerializeToString(t)) {
       cerr << "Failed to give ReadBlockResponse."<< endl;
       return -1;
     }
+    result = t.c_str();
 	return &result;
 }
 
@@ -57,8 +61,14 @@ writeblock_1_svc(char **argp, struct svc_req *rqstp)
 	static char * result;
 
 	WriteBlockRequest w;
-	int blockNo = w.blockInfo.blockNumber;
-	string data = w.data;
+	BlockLocations binfo = w.blockInfo();
+	int blockNo = binfo.blockNumber();
+	string data;
+	int data_size = w.data_size();
+	for(int i=0;i<data_size;i++)
+	{
+		data += w.data(i);
+	}
 
 	string filename = to_string(blockNo);
 	ofstream out(filename);
@@ -70,15 +80,17 @@ writeblock_1_svc(char **argp, struct svc_req *rqstp)
 	rep<<filename+"\n";
 	rep.close();
 
-	WriteBlockResponse w = new WriteBlockResponse();
-	w.status = 1;
+	WriteBlockResponse w;
+	w.set_status(1);
 
 	/*
 	 * insert server code here
 	 */
-	if (!w.SerializeToString(result)) {
+	string t;
+	if (!w.SerializeToString(t)) {
       cerr << "Failed to give WriteBlockResponse."<< endl;
       return -1;
     }
+    result = t.c_str();
 	return &result;
 }

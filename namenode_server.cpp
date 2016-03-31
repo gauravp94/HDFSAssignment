@@ -60,7 +60,7 @@ list_1_svc(char **argp, struct svc_req *rqstp)
 	static char * result;
 	ListFilesRequest l;
 	ListFilesResponse lr = new ListFilesResponse();
-	string dir_name = l.dirName;
+	string dir_name = l.dirName();
 	map<string, vector<int> >::iterator it;
 	vector<string> ans;
 	//set<int> setOfBlocks;
@@ -71,15 +71,21 @@ list_1_svc(char **argp, struct svc_req *rqstp)
 		// vector<int> blocks = it->second;
 		// copy( blocks.begin(), blocks.end(), std::inserter( setOfBlocks, setOfBlocks.end() ) );
 	}
-	lr.status=1;
-	lr.fileNames = ans;
+	lr.set_status(1);
+	for(int i=0;i<ans.size();i++)
+	{
+		lr.add_fileNames(ans[i]);
+	}
+	//lr.fileNames = ans;
 	/*
 	 * insert server code here
 	 */
-	if (!lr.SerializeToString(result)) {
+	string t;
+	if (!lr.SerializeToString(t)) {
       cerr << "Failed to give BlockReportResponse."<< endl;
       return -1;
     }
+    result = t.c_str();
 	return &result;
 }
 
@@ -88,11 +94,15 @@ sendblockreport_1_svc(char **argp, struct svc_req *rqstp)
 {
 	static char * result;
 	BlockReportRequest b;
-	BlockReportResponse op = new BlockReportResponse();
-	int dataNodeId = b.id;
-	string ip = b.blockLocations.ip;
-	int port = b.blockLocations.port;
-	vector<int> blockNos = b.blockNumbers;
+	BlockReportResponse op;
+	int dataNodeId = b.id();
+	string ip = b.blockLocations().ip();
+	int port = b.blockLocations().port();
+	vector<int> blockNos
+	for(int i=0;i<b.blockNumbers_size();i++)
+	{
+		blockNos.append(b.blockNumbers(i));
+	}
 	/*
 	 * insert server code here
 	 */
@@ -113,11 +123,13 @@ sendblockreport_1_svc(char **argp, struct svc_req *rqstp)
 			block_datanode_map[blockNos[i]] = tmp;
 		}
 	}
-	op.status = 1;
-	if (!op.SerializeToString(result)) {
+	op.set_status(1);
+	string tmp;
+	if (!op.SerializeToString(&tmp)) {
       cerr << "Failed to give BlockReportResponse."<< endl;
       return -1;
     }
+    result = tmp.c_str();
 	return &result;
 }
 
@@ -126,18 +138,20 @@ sendheartbeat_1_svc(char **argp, struct svc_req *rqstp)
 {
 	static char * result;
 	HeartBeatRequest r;
-	int blockno = r.id;
+	int blockno = r.id();
 	cout<<"got heartbeat from datanode :"<<blockno<<endl;
 
-	HeartBeatResponse hr = new HeartBeatResponse();
-	hr.status = 1;
+	HeartBeatResponse hr;
+	hr.set_status(1);
 
 	/*
 	 * insert server code here
 	 */
-	if (!hr.SerializeToString(result)) {
+	string t;
+	if (!hr.SerializeToString(t)) {
       cerr << "Failed to give HeartBeatResponse."<< endl;
       return -1;
     }
+    result = t.c_str();
 	return &result;
 }
