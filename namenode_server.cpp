@@ -5,12 +5,43 @@
  */
 
 #include "namenode.h"
+#include<map>
+#include<vector>
+using namespace std;
+
+string TAG = "NN", FILE_LIST = "file_list.txt";
+int blockNum = 0;
+int fileNum = 0;
+map<int, string> handle_filename_map;
+map<string, vector<int> > filename_block_map;
+map<int, vector<int> > block_datanode_map;
+int dataNodeNum = 4;
+vector<string> dataNodeIPs = {"127.0.0.1","127.0.0.1","127.0.0.1","127.0.0.1"};
+vector<int> dataNodePorts = {1099,1099,1099,1099};
 
 char **
 openfile_1_svc(char **argp, struct svc_req *rqstp)
 {
 	static char * result;
+	ReadBlockRequest r;
+	string filename = r.fileName;
+	bool forRead = r.forRead;
 
+	handle_filename_map[fileNum] = filename;
+
+	readBlockResponse op = new readBlockResponse();
+	op.status = 1;
+	op.handle = fileNum;
+
+	if(filename_block_map[filename] != NULL) {
+		op.blockNums = filename_block_map[filename];
+	}
+	fileNum++;
+
+	if(!op.SerilizeToString(result)){
+		cerr << "Failed" << endl;
+		return -1;
+	}
 	/*
 	 * insert server code here
 	 */
@@ -22,6 +53,14 @@ char **
 getblocklocations_1_svc(char **argp, struct svc_req *rqstp)
 {
 	static char * result;
+	BlockLocationRequest ip = new blockLocationRequest();
+	vector<int> blockNums = ip.blockNums;
+
+	BlockLocationResponse op = new BlockLocationResponse();
+	op.status = 1;
+
+	BlockLocations bl = new BlockLocations();
+
 
 	/*
 	 * insert server code here
@@ -34,11 +73,50 @@ char **
 assignblock_1_svc(char **argp, struct svc_req *rqstp)
 {
 	static char * result;
+	AssignBlockRequest ip = new AssignBlockRequest();
+	int handle = ip.handle;
+	string filename = handle_filename_map[handle];
+	if(filename_block_map[filename] != NULL) {
+		filename_block_map[filename] = blockNum;
+	} else {
+		vector<int> a;
+		a.push_back(blockNum);
+		filename_block_map[filename] = a;
+	}
+
+	BlockLocations bl = new BlockLocations();
+	DataNodeLocation dnl = new DataNodeLocation();
+
+	int datanode1=0, datanode2=0;
+	datanode1 = rand()%4+1;
+	while(datanode2 == datanode1) {
+		datanode2 = rand()%4+1;
+	}
+	cout << datanode1 + " " + datanode2 << endl;
+
+	bl.blockNumber = blockNum;
+	dnl.set_ip(dataNodeIPs[datanode1]);
+	dnl.set_port(dataNodeIPs[datanode1]);
+	dnl.add_locations();
+
+	dnl.set_ip(dataNodeIPs[datanode2]);
+	dnl.set_port(dataNodeIPs[datanode2]);
+	dnl.add_locations();
+
+	vector<int> blockNums = {datanode1, datanode2};
+	block_datanode_map[blockNum] = blockNums;
+
+	AssignBlockResponse op = new AssignBlockResponse();
+	op.set_status(1);
+	op.set_allocated_newblock();
 
 	/*
 	 * insert server code here
 	 */
-
+	 if(!op.SerilizeToString(result)){
+ 		cerr << "Failed" << endl;
+ 		return -1;
+ 	}
 	return &result;
 }
 
@@ -46,10 +124,31 @@ char **
 closefile_1_svc(char **argp, struct svc_req *rqstp)
 {
 	static char * result;
+	CloseFileRequest ip = new CloseFileRequest();
+	int handle = ip.handle;
 
+	string filename = handle_filename_map[handle];
+	vector<int> blockList = filename_block_map[filename];
+
+	ofstream out;
+	out.open(FILE_LIST, ios_base::app);
+	out << filename+" ";
+
+	for(int i=0; i<blockList.size(); i++) {
+		out << to_string(blockList[i]+" ");
+	}
+	out << endl;
+	out.close();
+
+	CloseFileResponse op = new CloseFileResponse();
+	op.status = 1;
 	/*
 	 * insert server code here
 	 */
+	 if(!op.SerilizeToString(result)){
+ 		cerr << "Failed" << endl;
+ 		return -1;
+ 	}
 
 	return &result;
 }
