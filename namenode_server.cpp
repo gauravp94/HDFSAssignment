@@ -23,29 +23,30 @@ char **
 openfile_1_svc(char **argp, struct svc_req *rqstp)
 {
 	static char * result;
-	ReadBlockRequest r;
-	string filename = r.fileName;
-	bool forRead = r.forRead;
+	ReadBlockRequest ip;
+	readBlockResponse op;
+	string filename = ip.fileName();
+	bool forRead = ip.forRead();
 
 	handle_filename_map[fileNum] = filename;
 
-	readBlockResponse op = new readBlockResponse();
-	op.status = 1;
-	op.handle = fileNum;
+	op.set_status(1);
+	op.set_handle(fileNum);
 
 	if(filename_block_map[filename] != NULL) {
-		op.blockNums = filename_block_map[filename];
+		op.set_blockNums(filename_block_map[filename]);
 	}
 	fileNum++;
 
-	if(!op.SerilizeToString(result)){
+	string t;
+	if(!op.SerilizeToString(t)){
 		cerr << "Failed" << endl;
 		return -1;
 	}
 	/*
 	 * insert server code here
 	 */
-
+	result = t.c_str();
 	return &result;
 }
 
@@ -73,8 +74,9 @@ char **
 assignblock_1_svc(char **argp, struct svc_req *rqstp)
 {
 	static char * result;
-	AssignBlockRequest ip = new AssignBlockRequest();
-	int handle = ip.handle;
+	AssignBlockRequest ip;
+	AssignBlockResponse op;
+	int handle = ip.handle();
 	string filename = handle_filename_map[handle];
 	if(filename_block_map[filename] != NULL) {
 		filename_block_map[filename] = blockNum;
@@ -94,7 +96,7 @@ assignblock_1_svc(char **argp, struct svc_req *rqstp)
 	}
 	cout << datanode1 + " " + datanode2 << endl;
 
-	bl.blockNumber = blockNum;
+	bl.set_blockNumber(blockNum);
 	dnl.set_ip(dataNodeIPs[datanode1]);
 	dnl.set_port(dataNodeIPs[datanode1]);
 	dnl.add_locations();
@@ -106,17 +108,18 @@ assignblock_1_svc(char **argp, struct svc_req *rqstp)
 	vector<int> blockNums = {datanode1, datanode2};
 	block_datanode_map[blockNum] = blockNums;
 
-	AssignBlockResponse op = new AssignBlockResponse();
 	op.set_status(1);
 	op.set_allocated_newblock();
 
 	/*
 	 * insert server code here
 	 */
-	 if(!op.SerilizeToString(result)){
+	 string t;
+	 if(!op.SerilizeToString(t)){
  		cerr << "Failed" << endl;
  		return -1;
  	}
+	result = t.c_str();
 	return &result;
 }
 
@@ -125,7 +128,8 @@ closefile_1_svc(char **argp, struct svc_req *rqstp)
 {
 	static char * result;
 	CloseFileRequest ip = new CloseFileRequest();
-	int handle = ip.handle;
+	CloseFileResponse op = new CloseFileResponse();
+	int handle = ip.handle();
 
 	string filename = handle_filename_map[handle];
 	vector<int> blockList = filename_block_map[filename];
@@ -141,15 +145,16 @@ closefile_1_svc(char **argp, struct svc_req *rqstp)
 	out.close();
 
 	CloseFileResponse op = new CloseFileResponse();
-	op.status = 1;
+	op.set_status(1);
 	/*
 	 * insert server code here
 	 */
-	 if(!op.SerilizeToString(result)){
+	 string t;
+	 if(!op.SerilizeToString(t)){
  		cerr << "Failed" << endl;
  		return -1;
  	}
-
+	result = t.c_str();
 	return &result;
 }
 
@@ -216,7 +221,7 @@ sendblockreport_1_svc(char **argp, struct svc_req *rqstp)
 		}
 		else
 		{
-			//if vector exists but entry not 
+			//if vector exists but entry not
 			vector<int> tmp = block_datanode_map[blockNos[i]];
 			tmp.append(dataNodeId);
 			block_datanode_map[blockNos[i]] = tmp;
